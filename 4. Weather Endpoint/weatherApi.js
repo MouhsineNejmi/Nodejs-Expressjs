@@ -7,10 +7,6 @@ const selectCityFromQuery = (cities, cityName) =>
 
 const getCityTemperature = async (cityName) => {
   const selectedCity = await selectCityFromQuery(cities, cityName);
-  if (!selectedCity) {
-    console.log("city not found");
-    return;
-  }
 
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${Number(

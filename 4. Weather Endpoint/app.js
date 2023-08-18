@@ -8,12 +8,19 @@ const requestHandler = (req, res) => {
 
   if (parsedUrl.path && req.method === "GET") {
     const cityName = parsedUrl.query.city;
+    const isCityInCities = (cityName) => {
+      let cityFound = cities.filter((city) => city.name === cityName)[0];
+      if (cityFound) {
+        return true;
+      }
+      return false;
+    };
 
     if (!cityName) {
       res.statusCode = 400;
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ error: "City parameter is required" }));
-    } else if (cities.indexOf(cityName)) {
+    } else if (!isCityInCities(cityName)) {
       res.statusCode = 400;
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ error: "City not found" }));
