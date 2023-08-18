@@ -8,17 +8,34 @@ const selectCityFromInput = (cities, cityName) =>
 
 const getCityTemperature = async () => {
   const selectedCity = await selectCityFromInput(cities, cityNameFromText);
-  const { name, lat, lng } = await selectedCity;
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${Number(
-    lat
-  )}&longitude=${Number(lng)}&current_weather=true`;
-  const response = await fetch(url);
-  const data = await response.json();
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${Number(
+      selectedCity.lat
+    )}&longitude=${Number(selectedCity.lng)}&current_weather=true`;
+    const response = await fetch(url);
+    const data = await response.json();
+    const temperature = data.current_weather.temperature;
 
-  console.log(
-    `The temperature in ${name} today is ${data.current_weather.temperature} °C`
-  );
+    let fileContent = `The temperature is ${temperature} degrees Celsius in ${selectedCity.name}`;
+
+    if (fs.existsSync(`${selectedCity.name}.txt`)) {
+      fs.unlink(`${selectedCity.name}.txt`, (err) => {
+        if (err) throw err;
+      });
+    }
+
+    fs.writeFile(
+      `${selectedCity.name}.txt`,
+      fileContent,
+      "utf8",
+      (err, data) => {
+        if (err) throw err;
+      }
+    );
+  } catch (error) {
+    throw new Error(error.message);
+  }
 };
 
 getCityTemperature();
