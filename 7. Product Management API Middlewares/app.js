@@ -1,4 +1,5 @@
 const express = require("express");
+const bodyParser = require("body-parser");
 
 const app = express();
 const productsRouter = express.Router();
@@ -11,7 +12,42 @@ let products = [
   { id: 5, name: "DJI Mavic Air 2", price: 799.99 },
 ];
 
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/products", productsRouter);
+
+const loggingMiddleware = (req, res, next) => {
+  const currentDate = new Date();
+  console.log(
+    `Request method ${req.method} and the request url is ${req.url} and the date is ${currentDate}`
+  );
+  next();
+};
+
+const errorHandler = (err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  console.log("Error handler is called");
+  res.status(statusCode).send({ error: message });
+  next(err);
+};
+
+app.use(loggingMiddleware);
+
+// Middleware if product is not available
+productsRouter.use("/:id", (req, res, next) => {
+  const id = Number(req.params.id);
+  const productIndex = products.findIndex((product) => product.id === id);
+
+  if (productIndex === -1) {
+    const err = Error("Product not found!");
+    err.status = 404;
+    res.send(err.message);
+    next(err);
+  }
+  req.productIndex = productIndex;
+  next();
+});
 
 productsRouter.get("/", (req, res) => {
   res.send(products);
@@ -37,14 +73,7 @@ productsRouter.get("/search", (req, res) => {
 });
 
 productsRouter.get("/:id", (req, res, next) => {
-  const id = Number(req.params.id);
-  const productIndex = products.findIndex((product) => product.id === id);
-
-  if (productIndex === -1) {
-    res.status(404).send("Product not found");
-  } else {
-    res.status(200).send(products[productIndex]);
-  }
+  res.status(200).send(products[req.productIndex]);
 });
 
 productsRouter.post("/", (req, res) => {
@@ -56,6 +85,7 @@ productsRouter.post("/", (req, res) => {
 
   if (product) {
     products.push(product);
+    console.log(products);
     res.status(204).send();
   } else {
     const err = Error(
@@ -67,42 +97,24 @@ productsRouter.post("/", (req, res) => {
 });
 
 productsRouter.put("/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const productIndex = products.findIndex((product) => product.id === id);
+  const updatedProduct = {
+    id: parseInt(req.body.id),
+    name: req.body.name,
+    price: parseFloat(req.body.price),
+  };
 
-  if (productIndex === -1) {
-    const err = Error(
-      "Product not found, please select a product from the list"
-    );
-    err.status = 404;
-    res.send(err);
-  } else {
-    const updatedProduct = {
-      id: parseInt(req.query.id),
-      name: req.body.name,
-      price: parseFloat(req.query.price),
-    };
+  products[req.productIndex] = updatedProduct;
+  console.log(products);
 
-    products[productIndex] = updatedProduct;
-    res.status(204).send();
-  }
+  res.status(204).send();
 });
 
 productsRouter.delete("/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const productIndex = products.findIndex((product) => product.id === id);
-
-  if (productIndex === -1) {
-    const err = Error(
-      "Product not found, please select a product from the list"
-    );
-    err.status = 404;
-    res.send(err);
-  } else {
-    products.splice(productIndex, 1);
-    res.status(204).send(newProducts);
-  }
+  products.splice(req.productIndex, 1);
+  res.status(204).send();
 });
+
+app.use(errorHandler);
 
 app.listen(3000, () => {
   console.log("Server listening on port 3000");
