@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const ejs = require("ejs");
 
 const app = express();
 const productsRouter = express.Router();
@@ -13,6 +14,8 @@ let products = [
 ];
 
 app.use(bodyParser.urlencoded({ extended: true }));
+app.set("view engine", "ejs");
+
 app.use("/products", productsRouter);
 
 const loggingMiddleware = (req, res, next) => {
@@ -35,7 +38,7 @@ const errorHandler = (err, req, res, next) => {
 app.use(loggingMiddleware);
 
 productsRouter.get("/", (req, res) => {
-  res.send(products);
+  res.render("home", { products: products });
 });
 
 productsRouter.get("/search", (req, res) => {
@@ -50,15 +53,10 @@ productsRouter.get("/search", (req, res) => {
         product.price <= maxPrice
       ) {
         searchedProducts.push(product);
+        res.render("home", { products: searchedProducts });
       }
     });
   }
-
-  res.send(searchedProducts);
-});
-
-productsRouter.get("/:id", (req, res, next) => {
-  res.status(200).send(products[req.productIndex]);
 });
 
 // Middleware if product is not available
@@ -75,6 +73,10 @@ productsRouter.use("/:id", (req, res, next) => {
   req.productIndex = productIndex;
   next();
 });
+
+// productsRouter.get("/:id", (req, res) => {
+//   res.render("productDetails", { product: products[req.productIndex] });
+// });
 
 productsRouter.post("/", (req, res) => {
   const product = {
@@ -114,7 +116,7 @@ productsRouter.delete("/:id", (req, res) => {
   res.status(204).send();
 });
 
-app.use(errorHandler);
+// app.use(errorHandler);
 
 app.listen(3000, () => {
   console.log("Server listening on port 3000");
